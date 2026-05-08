@@ -13,7 +13,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Опцион">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <!-- Chart.js и html2canvas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -240,6 +239,49 @@
             .form-row .input-group { min-width: 100%; }
             .date-range-group .input-group { min-width: 100%; }
         }
+
+        /* Кнопка установки PWA */
+        #pwa-install-bar {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 9999;
+            background: linear-gradient(135deg, #1f4e79, #2c6e9e);
+            color: white;
+            padding: 14px 20px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+        }
+        #pwa-install-bar.visible { display: flex; }
+        #pwa-install-bar .pwa-text { font-size: 0.95rem; font-weight: 600; }
+        #pwa-install-bar .pwa-text small { display: block; font-weight: 400; font-size: 0.78rem; opacity: 0.85; }
+        #pwa-install-btn {
+            background: white;
+            color: #1f4e79;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: none;
+        }
+        #pwa-install-btn:hover { background: #e8f0fe; transform: none; }
+        #pwa-dismiss-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 0 4px;
+            box-shadow: none;
+            line-height: 1;
+        }
+        #pwa-dismiss-btn:hover { background: transparent; transform: none; color: white; }
+        body { padding-bottom: 80px; }
     </style>
 </head>
 <body>
@@ -358,6 +400,16 @@
             <p style="color: #6b7280;">🔍 Выберите диапазон дат (или одинаковые даты для одного дня) и нажмите «Сформировать отчёт».</p>
         </div>
     </div>
+</div>
+
+<!-- Панель установки PWA -->
+<div id="pwa-install-bar">
+    <div class="pwa-text">
+        📲 Установить приложение
+        <small>Работает офлайн, как обычное приложение</small>
+    </div>
+    <button id="pwa-install-btn">⬇ Установить</button>
+    <button id="pwa-dismiss-btn" title="Закрыть">✕</button>
 </div>
 
 <script>
@@ -685,6 +737,35 @@
             navigator.serviceWorker.register('./sw.js').catch(() => {});
         });
     }
+
+    // Кнопка установки PWA
+    let deferredPrompt = null;
+    const installBar = document.getElementById('pwa-install-bar');
+    const installBtn = document.getElementById('pwa-install-btn');
+    const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBar.classList.add('visible');
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBar.classList.remove('visible');
+    });
+
+    dismissBtn.addEventListener('click', () => {
+        installBar.classList.remove('visible');
+    });
+
+    window.addEventListener('appinstalled', () => {
+        installBar.classList.remove('visible');
+        deferredPrompt = null;
+    });
 
     // При загрузке страницы
     loadData();
